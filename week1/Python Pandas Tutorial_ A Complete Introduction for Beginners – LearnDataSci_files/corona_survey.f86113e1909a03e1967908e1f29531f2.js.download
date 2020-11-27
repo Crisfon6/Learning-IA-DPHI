@@ -1,0 +1,1 @@
+!function(){var a={},b=a,c=document,d=encodeURIComponent,e=z="",f=c.createElement("script"),g=c.referrer,h=c.getElementsByTagName("script")[0];f.type="text/javascript",f.async=!0,g&&g.split(/[\/:?]/)[3]!=c.location.hostname&&(b.ref=g);for(y in b)e+="&"+y+"="+d(b[y]);f.src="//com-disqus.netmng.com/?aid=6232&siclientid=104987"+e,h.parentNode.insertBefore(f,h)}();

@@ -1,0 +1,371 @@
+// the semi-colon before function invocation is a safety net against concatenated
+// scripts and/or other plugins which may not be closed properly.
+;( function( $, window, document, undefined ) {
+
+	"use strict";
+
+		// undefined is used here as the undefined global variable in ECMAScript 3 is
+		// mutable (ie. it can be changed by someone else). undefined isn't really being
+		// passed in so we can ensure the value of it is truly undefined. In ES5, undefined
+		// can no longer be modified.
+
+		// window and document are passed through as local variables rather than global
+		// as this (slightly) quickens the resolution process and can be more efficiently
+		// minified (especially when both are regularly referenced in your plugin).
+
+		// Create the defaults once
+		var pluginName = "learnDataSciJS",
+			defaults = {
+				siteRoot: "https://www.learndatasci.com"
+			};
+
+		// The actual plugin constructor
+		function Plugin ( element, options ) {
+			this.element = element;
+
+			// jQuery has an extend method which merges the contents of two or
+			// more objects, storing the result in the first object. The first object
+			// is generally empty as we don't want to alter the default options for
+			// future instances of the plugin
+			this.settings = $.extend( {}, defaults, options );
+			this._defaults = defaults;
+			this._name = pluginName;
+			this.init();
+		}
+
+		// Avoid Plugin.prototype conflicts
+		$.extend( Plugin.prototype, {
+			init: function() {
+
+				// Place initialization logic here
+				// You already have access to the DOM element and
+				// the options via the instance, e.g. this.element
+				// and this.settings
+				// you can add more functions like the one below and
+				// call them like the example below
+				this.buildBlogIndex();
+
+				this.mainNav();
+
+				 this.articleWaypoints($('.sticky'));
+
+				 this.articleWaypoints($('#IndexNav'));
+
+
+
+				 this.showNewsletter();
+
+				 this.shareWidget();
+
+
+			},
+			shareWidget: function(){
+				if($('.social-sidebar .share').length>0){
+					$('.social-sidebar .share a').on('click', function(e){
+						e.preventDefault();
+						var the_link = $(this).attr('href');
+						window.open(the_link,'targetWindow',
+                                   'toolbar=no,'+
+                                    'location=center,'+
+                                    'status=no,'+
+                                    'menubar=no,'+
+                                    'scrollbars=yes,'+
+                                    'resizable=yes,'+
+                                    'width=600px,'+
+                                    'height=500px');
+					})
+				}
+			},
+			showNewsletter: function(){
+				var ls_news = localStorage.getItem('news_closed');
+				var $newsPop = $('body>.newsletter-signup-wrapper');
+				if(!ls_news) {
+                    setTimeout(function () {
+
+                        $newsPop.append('<div class="exit-news"><span></span><span></span></div>');
+                        $newsPop.addClass('show');
+                        console.log('show newsletter');
+                    }, 3000);
+                }
+                $('body').on('click', '.exit-news', function(e){
+                	localStorage.setItem('news_closed', 'true');
+                	$newsPop.removeClass('show');
+				});
+			},
+			mainNav: function(){
+				$(document).on('scroll', function(){
+					if ($(document).scrollTop() > 600) {
+						$('.navbar').addClass("stuck");
+					}else{
+						$('.navbar').removeClass("stuck");
+					}
+				});
+
+				$('.navbar-toggle').on('click', function(e){
+					$('.navbar-header').toggleClass('show');
+					$('.navbar-collapse').toggleClass('show');
+				});
+			},
+			abbreviateNums: function(number, decPlaces){
+				    // 2 decimal places => 100, 3 => 1000, etc
+				    decPlaces = Math.pow(10,decPlaces);
+
+				    // Enumerate number abbreviations
+				    var abbrev = [ "k", "m", "b", "t" ];
+
+				    // Go through the array backwards, so we do the largest first
+				    for (var i=abbrev.length-1; i>=0; i--) {
+
+				        // Convert array index to "1000", "1000000", etc
+				        var size = Math.pow(10,(i+1)*3);
+
+				        // If the number is bigger or equal do the abbreviation
+				        if(size <= number) {
+				             // Here, we multiply by decPlaces, round, and then divide by decPlaces.
+				             // This gives us nice rounding to a particular decimal place.
+				             number = Math.round(number*decPlaces/size)/decPlaces;
+
+				             // Handle special case where we round up to the next abbreviation
+				             if((number == 1000) && (i < abbrev.length - 1)) {
+				                 number = 1;
+				                 i++;
+				             }
+
+				             // Add the letter for the abbreviation
+				             number += abbrev[i];
+
+				             // We are done... stop
+				             break;
+				        }
+				    }
+
+				    return number;
+				
+			},
+			buildBlogIndex: function( ) {
+				var index_template = "<div id='IndexNav'><h4>Contents Index</h4><ul></ul></div>";
+				if($('.index-wrapper').length>=1){
+					$('.index-wrapper').append(index_template);
+				}else{
+					$('article, .entire-course-wrap').prepend("<div class='index-wrapper'>"+index_template+"</div>");
+				}
+
+
+				var mobile_tmplt = "<div class='index-wrapper-mobi'><div id='IndexNavMobi'><h4>Contents Index</h4><ul></ul></div></div>";
+				$(mobile_tmplt).insertAfter($('article .intro, .main-intro'));
+				$('body').on('click', '#IndexNavMobi h4', function(e){
+					$(this).parent().toggleClass('open');
+				});
+				// some logic
+
+				$('body').on('click', '#IndexNav a', function(e){
+					e.preventDefault();
+					var link_to_scroll = $($(e.target).attr('href'));
+
+					 $('html, body').animate({
+						scrollTop: link_to_scroll.offset().top-70
+					},{
+					 	duration:500,
+						 complete:function(){
+
+						 }
+                     });
+				});
+
+				$('h2,h3,h4,h5',$('article, .entire-course-wrap')).each(function(idx,item){
+					var the_id = $(this).attr('id');
+					var h_class = ('index-'+$(this).prop('nodeName'));
+					if(the_id) {
+                        var the_txt = $(this).text();
+                        $("#IndexNav>ul").append("<li class='"+(h_class)+"'><a href='#" + the_id + "'>" + the_txt + "</a></li>");
+                        $("#IndexNavMobi>ul").append("<li class='"+(h_class)+"'><a href='#" + the_id + "'>" + the_txt + "</a></li>");
+                    }
+					
+				});
+
+
+
+
+			},
+          articleWaypoints:function(stickyEl){
+				var isShare = false;
+				if($('article').length>0){
+					var $content = $('article');
+					var $foot = $('#ArticleFoot');
+				}else if($('.has-share').length>0){
+					isShare = true;
+					var $content = $('.has-share');
+					var $foot = $('footer.footer');
+                }
+
+                if($foot || $content) {
+
+
+                    var footer_offset = $foot.offset().top;
+
+
+
+                    var stickyHeightMin = (  $(window).height() - $('.navbar').height() );
+
+                    var contentHeight = $content.outerHeight() - $('.navbar').height();
+
+                    if (stickyHeightMin < contentHeight) {
+                        //$('.sticky').css('min-height',$(window).height()-$('header.site-header').height());
+                        $('.sticky').css('visibility', 'visible');
+
+                    } else {
+                        //$('.sticky').css('min-height',$('.rte .body').outerHeight()-$('header.site-header').height() );
+                        $('.sticky').css('visibility', 'invisible');
+                    }
+                    var offsetTop = stickyEl.offset().top;
+                    var stickyTop = (offsetTop + stickyEl.height()) - ($(window).height()); // returns number
+                    var offset_sidebar = (-stickyEl.height()) + $(window).height();
+
+                    var indexTopPos = $('#IndexNav').offset().top - ($('.navbar').height());
+
+
+                    $(window).resize(function (event) {
+						/* Act on the event */
+                        var stickyHeightMin = (  $(window).height() - ($('.navbar').height() / 2 ) );
+                        var contentHeight = $content.outerHeight() - ($('.navbar').height() / 2);
+                        indexTopPos =  $('#IndexNav').offset().top - ($('.navbar').height());
+
+                        if (stickyEl.height() > contentHeight) {
+
+
+                            $('article').css('min-height', stickyEl.height());
+
+
+                        } else {
+                            //$('.sticky').css('min-height', stickyHeightMin );
+                        }
+                        stickyTop = ($('.navbar').height() + stickyEl.height()) - ($(window).height());
+                        offset_sidebar = (-stickyEl.height()) + $(window).height();
+                        $(window).trigger('scroll');
+                        setTimeout(function () {
+                            stickyEl.css('visibility', 'visible');
+
+                        }, 15);
+                    });
+
+
+                    var that = this;
+                    $('#IndexNav ul li a').on('click', function () {
+
+                    });
+                    $(window).scroll(function () { // scroll event
+
+                        $('#IndexNav ul li a').each(function () {
+                        	try {
+                                var the_id = $(this).attr('href');
+                                if (that.isElInView($(the_id))) {
+                                    if ($('#IndexNav ul li a.active').length < 1) {
+                                        $(this).addClass('active');
+                                    } else {
+                                        //$('#IndexNav ul li a.active').removeClass('active');
+                                        $(this).addClass('active');
+                                    }
+                                } else {
+                                    if ($('#IndexNav ul li a.active').length > 1) {
+                                        $(this).removeClass('active');
+                                    }
+                                }
+                            }catch(error){
+                        		console.log("error", error);
+							}
+
+                        });
+
+                        if (that.offset($content).top <= $('.navbar').height()) {
+                            if (that.hitEl(stickyEl, $foot) == true) {
+                                var rect = $foot[0].getBoundingClientRect();
+                                stickyEl.css({position: 'fixed', top: rect.top - (stickyEl.height() )});
+                            } else {
+                                var windowTop = $(window).scrollTop();
+
+                                if (indexTopPos <= windowTop) {
+                                	console.log('started stickying');
+                                    stickyEl.css({position: 'fixed', top: 70});
+                                    if(stickyEl.hasClass('share')){
+                                    	stickyEl.addClass('stickified');
+                                    	stickyEl.css({left: 5});
+									}
+                                }
+                                else {
+                                    stickyEl.css('position', 'static');
+                                    if(stickyEl.hasClass('share')){
+                                    	stickyEl.removeClass('stickified');
+									}
+                                }
+                            }
+                        } else {
+                            stickyEl.css('position', 'static');
+                            if(stickyEl.hasClass('share')){
+                                    	stickyEl.removeClass('stickified');
+									}
+                        }
+
+                    });
+
+                    $(window).trigger('scroll');
+                }
+
+          },
+          offset: function(el) {
+              var rect = $(el)[0].getBoundingClientRect(),
+              scrollLeft = window.pageXOffset || document.documentElement.scrollLeft,
+              scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+              return { top: rect.top , left: rect.left + scrollLeft }
+          },
+          hitEl: function(el, el2){
+            
+					    if (typeof jQuery === "function" && el instanceof jQuery) {
+					        el = el[0];
+					    }
+
+					    var rect = el.getBoundingClientRect();
+            
+            
+            if (typeof jQuery === "function" && el2 instanceof jQuery) {
+					        el2 = el2[0];
+					    }
+
+					    var rect2 = el2.getBoundingClientRect();
+            
+            if(rect2.top<=($(el).height()+($('.navbar').height()))){
+              
+              return true;
+            }else{
+              return 'null';
+            }
+
+          },
+          isElInView: function(el){
+            
+					    if (typeof jQuery === "function" && el instanceof jQuery) {
+					        el = el[0];
+					    }
+
+					    var rect = el.getBoundingClientRect();
+
+					    return (
+					        rect.top >= 0 &&
+					        rect.left >= 0 &&
+					        rect.top <= (window.innerHeight/2 || document.documentElement.clientHeight) && /*or $(window).height() */
+					        rect.right <= (window.innerWidth || document.documentElement.clientWidth) /*or $(window).width() */
+					    );
+					},
+		} );
+
+		// A really lightweight plugin wrapper around the constructor,
+		// preventing against multiple instantiations
+		$.fn[ pluginName ] = function( options ) {
+			return this.each( function() {
+				if ( !$.data( this, "plugin_" + pluginName ) ) {
+					$.data( this, "plugin_" +
+						pluginName, new Plugin( this, options ) );
+				}
+			} );
+		};
+
+} )( jQuery, window, document );
